@@ -63,7 +63,38 @@ export const signup = async (req, res, next) => {
 };
 
 export const login = async (req, res, next) => {
-  res.send("Login route");
+  const { email, password } = req.body;
+
+  try {
+    if (!email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const isPasswordCorrect = await user.matchPassword(password);
+
+    if (!isPasswordCorrect) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const token = jwt.sign(
+      { userId: newUser._id },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: "7d" }
+    );
+
+    res.cookie("jwt", token, {
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      httpOnly: true, // Prevents client-side JavaScript from accessing the cookie // prevent xss attack
+      sameSite: "strict", // Helps prevent CSRF attacks
+      secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+    });
+  } catch (error) {}
 };
 
 export const logout = (req, res, next) => {
