@@ -27,6 +27,10 @@ dist-ssr
 
 # Ignore environment files
 .env
+.env.local
+.env.development
+.env.development.local
+.env.test
 .env.*
 
 # Ignore node modules
