@@ -1,3 +1,4 @@
+import { upsertStreamUser } from "../lib/stream.js";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 
@@ -37,7 +38,17 @@ export const signup = async (req, res, next) => {
       profilePic: randomAvatar,
     });
 
-    // TODO: CREATE THE USER IN STREAM AS WELL
+    // TODO: CREATE THE USER IN STREAM AS WELL - Done ✅ // upersert is used to create or update the user
+    try {
+      await upsertStreamUser({
+        id: newUser._id.toString(),
+        name: newUser.fullName,
+        image: newUser.profilePic || "",
+      });
+      console.log(`Stream user created for ${newUser.fullName}`);
+    } catch (error) {
+      console.log("Error creating stream user", error);
+    }
 
     const token = jwt.sign(
       { userId: newUser._id },
@@ -82,11 +93,9 @@ export const login = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    const token = jwt.sign(
-      { userId: newUser._id },
-      process.env.JWT_SECRET_KEY,
-      { expiresIn: "7d" }
-    );
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET_KEY, {
+      expiresIn: "7d",
+    });
 
     res.cookie("jwt", token, {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -94,7 +103,15 @@ export const login = async (req, res, next) => {
       sameSite: "strict", // Helps prevent CSRF attacks
       secure: process.env.NODE_ENV === "production", // Use secure cookies in production
     });
-  } catch (error) {}
+    // Send a response here
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.log("Error in login controller", error.message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
 };
 
 export const logout = (req, res, next) => {
