@@ -119,3 +119,57 @@ export const logout = (req, res, next) => {
 
   res.status(200).json({ message: "Logged out successfully" });
 };
+
+export const onboard = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { fullName, bio, nativeLanguage, learningLanguage, location } =
+      req.body;
+
+    if (
+      !fullName ||
+      !bio ||
+      !nativeLanguage ||
+      !learningLanguage ||
+      !location
+    ) {
+      return res.status(400).json({
+        message: "All fields are required",
+        missingFields: [
+          !fullName && "fullName",
+          !bio && "Bio",
+          !nativeLanguage && "Native Language",
+          !learningLanguage && "Learning Language",
+          !location && "Location",
+        ].filter(Boolean),
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { ...req.body, isOnboarded: true },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    //TODO: UPDATE THE USER IN STREAM AS WELL - Done ✅
+    try {
+      await upsertStreamUser({
+        id: updatedUser._id.toString(),
+        name: updatedUser.fullName,
+        image: updatedUser.profilePic || "",
+      });
+      console.log(
+        `Stream user updated after onboarding for ${updatedUser.fullName}`
+      );
+    } catch (error) {}
+
+    res.status(200).json({ success: true, user: updatedUser });
+  } catch (error) {
+    console.log("Error in onboard controller", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
