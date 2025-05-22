@@ -11,6 +11,7 @@ import ChatPage from "./pages/ChatPage";
 import { Toaster } from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { axiosInstance } from "./lib/axios";
 
 const App = () => {
   // tenstack react-query
@@ -18,13 +19,12 @@ const App = () => {
     queryKey: ["todos"],
 
     queryFn: async () => {
-      const res = await axios.get("https://jsonplaceholder.typicode.com/todos");
+      const res = await axiosInstance.get("http://localhost:5001/api/auth/me");
       return res.data;
     },
+    retry: false, // Disable retry on failure or tries only once
   });
-  console.log({ data });
-  console.log({ isLoading });
-  console.log({ error });
+  console.log(data);
 
   return (
     <div className="h-screen" data-theme="night">
